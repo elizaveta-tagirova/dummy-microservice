@@ -3,6 +3,7 @@ name: Test Workflow
 on:
   push:
     branches: [main]
+  workflow_dispatch: {} 
   repository_dispatch:
     types: [trigger-workflow]
 
