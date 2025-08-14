@@ -1,14 +1,12 @@
 name: Test Workflow
 
 on:
-  push:
-    branches: [ main ]
   repository_dispatch:
-    types: [ trigger-workflow ]
+    types: [trigger-workflow]
 
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
       - name: Echo message
-        run: echo "✅ Received repository_dispatch: trigger-workflow"
+        run: echo "Received repository_dispatch trigger-workflow"
