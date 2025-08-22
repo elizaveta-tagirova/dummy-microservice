@@ -82,8 +82,7 @@ def main():
             dest_abs = safe_join(repo_root, dest_rel)
             dest_abs.parent.mkdir(parents=True, exist_ok=True)
             print(f"[copy] {p} -> {dest_rel}")
-            if not args.dry_run:
-                shutil.copyfile(p, dest_abs)
+            shutil.copyfile(p, dest_abs)
 
     # 2) Inject blocks according to .meta
     if blocks_dir.exists():
@@ -103,10 +102,8 @@ def main():
                 raise SystemExit(f"Destination file not found: {dest_file}")
             payload = p.read_text(encoding="utf-8")
             print(f"[inject] {p} -> {dest_file_rel} (block '{block_name}')")
-            if not args.dry_run:
-                inject_block(dest_file, block_name, payload)
+            inject_block(dest_file, block_name, payload)
 
-    print("Done.")
 
 if __name__ == "__main__":
     main()
