@@ -31,6 +31,18 @@ jobs:
       - name: Inject generated configs
         run: python tools/inject_configs.py --env prod
 
+      - name: Get pushed variables
+        run: |
+          VARS_JSON=$(curl -sS \
+            -H "Authorization: token ${{ github.token }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/variables?per_page=100" \
+            | jq -c '.variables | map({(.name): .value}) | add // {}')
+          echo "VARS_JSON=$VARS_JSON" >> $GITHUB_ENV
+
+      - name: Inject pushed variables
+        run: python tools/inject_vars.py --vars-json '${{ env.VARS_JSON }}'
+
       - name: Commit incorporated changes
         run: |
           git config user.name "Config Injector"

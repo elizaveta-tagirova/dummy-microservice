@@ -48,7 +48,7 @@ def collect_placeholders(text: str) -> set[str]:
 
 def main():
     p = argparse.ArgumentParser(description="Inject GitHub Variables into files by replacing {{ vars.NAME }}")
-    p.add_argument("--vars-json", required=True, help="Path to JSON file with {name: value}")
+    p.add_argument("--vars-json", type=json.loads, required=True, help="JSON with {name: value}")
     p.add_argument("--map", default="vars-map.yaml", help="Path to vars-map.yaml (optional)")
     args = p.parse_args()
 
