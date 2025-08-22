@@ -1,16 +1,8 @@
 plugins { /* … */ }
 
 // >>> BEGIN GENERATED (first-block) DO NOT EDIT
-// >>> BEGIN GENERATED ({{blockName}}) DO NOT EDIT
-// source: repo B
-// checksum: aaa644fe711fdb58cbc22f2fcf1a62048549e9336d696b4dbf71dd0c818bbcb0
-val featureFlag = false
-val logLevel by extra("INFO")
-param="param value 1"
-// <<< END GENERATED
-// <<< END GENERATED
-// <<< END GENERATED
-// <<< END GENERATED
+// source:
+// checksum:
 // <<< END GENERATED
 
 java {
@@ -18,4 +10,9 @@ java {
         languageVersion.set(JavaLanguageVersion.of(21))
     }
 }
+
+// using gh variables
+val someVar = {{ vars.var1 }}
+val someVar2 = {{ vars.var2 }}
+
 // rest of file...
