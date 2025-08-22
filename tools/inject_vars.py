@@ -52,7 +52,7 @@ def main():
     p.add_argument("--map", default="vars-map.yaml", help="Path to vars-map.yaml (optional)")
     args = p.parse_args()
 
-    var_values = load_vars(Path(args.vars_json))
+    var_values = args.vars_json
     targets = load_map(Path(args.map))
 
     total_changes = 0
