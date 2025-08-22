@@ -5,12 +5,18 @@ on:
   repository_dispatch:
     types: [trigger-workflow]
 
+permissions:
+  contents: write
+
 jobs:
   inject-configs:
     runs-on: ubuntu-latest
     steps:
       - name: Сheckout
         uses: actions/checkout@v4
+        with:
+          token: ${{ github.token }}
+          ref: main
 
       - name: Check generated configs pushed
         run: test -d .config/generated
@@ -34,7 +40,7 @@ jobs:
             echo "No changes to commit"
           else
             git commit -m "chore(config): inject .config/generated"
-            git push origin main
+            git push origin HEAD:main
           fi
 
   test:
