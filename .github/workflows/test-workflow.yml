@@ -1,15 +1,45 @@
 name: Test Workflow
 
 on:
-  push:
-    branches: [main]
-  workflow_dispatch: {} 
+  workflow_dispatch:
   repository_dispatch:
     types: [trigger-workflow]
 
 jobs:
+  inject-configs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Сheckout
+        uses: actions/checkout@v4
+
+      - name: Check generated configs pushed
+        run: test -d .config/generated
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with: { python-version: "3.x" }
+
+      - name: Install injector deps
+        run: python -m pip install -r tools/requirements.txt
+
+      - name: Inject generated configs
+        run: python tools/inject_configs.py --env prod
+
+      - name: Commit incorporated changes
+        run: |
+          git config user.name "Config Injector"
+          git config user.email "config-injector@example.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "chore(config): inject .config/generated"
+            git push origin main
+          fi
+
   test:
+    needs: [inject-configs]
     runs-on: ubuntu-latest
     steps:
       - name: Echo message
-        run: echo "Received repository_dispatch trigger-workflow"
+        run: echo "Received dispatch trigger-workflow"
