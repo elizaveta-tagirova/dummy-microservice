@@ -1,13 +1,11 @@
 plugins { /* … */ }
 
 // >>> BEGIN GENERATED (some-block) DO NOT EDIT
-// >>> BEGIN GENERATED ({{blockName}}) DO NOT EDIT
-// source: repo B
-// checksum: c2abc0236f41b9b67a134c763f204cdf42900291968a9cd02c43741753f72d9e
+// source:
+// checksum:
 val featureFlag = false
 val logLevel by extra("INFO")
 param="param value 2"
-// <<< END GENERATED
 // <<< END GENERATED
 
 java {
