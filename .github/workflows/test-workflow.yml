@@ -16,10 +16,12 @@ jobs:
       contents: read
       actions: read
     steps:
-      - uses: elizaveta-tagirova/dummy-orchestration/.github/actions/test_action@0a1b02c452e82f1d998fecaca9080009758f4d6f
-        with:
-          token: ${{ secrets.ACTIONS_TOKEN }}
-          ref: main
+      - uses: actions/checkout@v4
+      - name: Test action
+        run: |
+          git clone https://x-access-token:${{ secrets.ACTIONS_TOKEN }}@github.com/elizaveta-tagirova/dummy-orchestration.git ./.test-action
+          cd ./.test-action && git checkout 0a1b02c452e82f1d998fecaca9080009758f4d6f
+      - uses: ./.test-action/.github/actions/test-action
 
   inject-configs:
     runs-on: ubuntu-latest
