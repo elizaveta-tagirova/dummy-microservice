@@ -10,6 +10,17 @@ permissions:
   actions: read
 
 jobs:
+  test-action:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: elizaveta-tagirova/dummy-orchestration/.github/actions/test-action@0a1b02c4
+        with:
+          token: ${{ secrets.ACTIONS_TOKEN }}
+          ref: main
+
   inject-configs:
     runs-on: ubuntu-latest
     steps:
