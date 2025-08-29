@@ -16,7 +16,7 @@ jobs:
       contents: read
       actions: read
     steps:
-      - uses: elizaveta-tagirova/dummy-orchestration/.github/actions/test-action@0a1b02c452e82f1d998fecaca9080009758f4d6f
+      - uses: elizaveta-tagirova/dummy-orchestration/.github/actions/test_action@0a1b02c452e82f1d998fecaca9080009758f4d6f
         with:
           token: ${{ secrets.ACTIONS_TOKEN }}
           ref: main
