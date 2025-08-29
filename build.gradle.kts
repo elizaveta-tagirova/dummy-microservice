@@ -10,6 +10,7 @@ param="param value 1"
 // <<< END GENERATED
 // <<< END GENERATED
 // <<< END GENERATED
+// <<< END GENERATED
 
 java {
     toolchain {
