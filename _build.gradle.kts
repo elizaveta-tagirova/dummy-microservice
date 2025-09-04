@@ -15,6 +15,7 @@ param="param value 2"
 // <<< END GENERATED
 // <<< END GENERATED
 // <<< END GENERATED
+// <<< END GENERATED
 
 java {
     toolchain {
