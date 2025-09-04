@@ -17,13 +17,12 @@ jobs:
       actions: read
     steps:
       - uses: actions/checkout@v4
+
       - name: Test action
-        run: |
-          git clone https://x-access-token:${{ secrets.ACTIONS_TOKEN }}@github.com/elizaveta-tagirova/dummy-orchestration.git ./.test-action
-          cd ./.test-action && git checkout 0a1b02c452e82f1d998fecaca9080009758f4d6f
-      - uses: ./.test-action/.github/actions/test-action
+        uses: elizaveta-tagirova/dummy-orchestration/.github/actions/test-action@0a1b02c452e82f1d998fecaca9080009758f4d6f
 
   inject-configs:
+    needs: [test-action]
     runs-on: ubuntu-latest
     steps:
       - name: Сheckout
