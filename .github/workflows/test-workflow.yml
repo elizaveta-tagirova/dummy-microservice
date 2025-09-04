@@ -19,7 +19,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Test action
-        uses: elizaveta-tagirova/dummy-orchestration/.github/actions/test-action@0a1b02c452e82f1d998fecaca9080009758f4d6f
+        uses: elizaveta-tagirova/dummy-orchestration/.github/actions/test_action@0a1b02c452e82f1d998fecaca9080009758f4d6f
 
   inject-configs:
     needs: [test-action]
