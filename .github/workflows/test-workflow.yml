@@ -19,8 +19,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Check if to pull artifact
+        id: condition
+        run: |
+          if [[ "${{ github.event_name }}" == "repository_dispatch" && "${{ github.event.action }}" == "import-from-orchestrator" ]]; then
+            echo "run=true"
+            echo "run=true"  >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false"
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Pull artifact from orchestrator
         id: pull_artifact
+        if: steps.condition.outputs.run == 'true'
         uses: ./.github/actions/pull_orchestrator_artifact
         with:
           token: ${{ secrets.VARS_LIST_TOKEN }}
@@ -31,6 +43,7 @@ jobs:
           path: ${{ github.event.client_payload.save_path }}
 
       - name: List downloaded
+        if: steps.condition.outputs.run == 'true'
         run: |
           echo "Downloaded to: ${{ steps.pull_artifact.outputs.download_path }}"
           find "${{ steps.pull_artifact.outputs.download_path }}" -type f -print
