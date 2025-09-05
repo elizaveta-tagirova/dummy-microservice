@@ -3,7 +3,7 @@ name: Test Workflow
 on:
   workflow_dispatch:
   repository_dispatch:
-    types: [trigger-workflow]
+    types: [trigger-workflow, import-from-orchestrator]
 
 permissions:
   contents: write
@@ -36,8 +36,31 @@ jobs:
       - name: Test prev outputs
         run: echo "Outputs ${{ toJson(steps.inject_config_files.outputs) }}"
 
+  pull-artifact:
+    if: github.event_name == 'repository_dispatch' && github.event.action == 'import-from-orchestrator'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Pull artifact from orchestrator
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ github.event.client_payload.artifact_name }}
+          repository: ${{ github.event.client_payload.source_owner }}/${{ github.event.client_payload.source_repo }}
+          run-id: ${{ github.event.client_payload.run_id }}
+          github-token: ${{ secrets.VARS_LIST_TOKEN }}
+          path: .orchestrator-artifacts
+
+      - name: Test prev outputs
+        run: |
+          echo "Pulled artifacts:"
+          find .orchestrator-artifacts -type f -print
+
   inject-configs:
-    needs: [test-action, test-local-action]
+    needs: [test-action, test-local-action, pull-artifact]
     runs-on: ubuntu-latest
     steps:
       - name: Сheckout
