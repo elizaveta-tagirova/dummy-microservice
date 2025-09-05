@@ -14,7 +14,10 @@ inputs:
   run_id:
     description: "Workflow run ID to download from"
     required: true
-  artifact_name:
+  artifact_name_files:
+    description: "Artifact name to download"
+    required: true
+  artifact_name_vars:
     description: "Artifact name to download"
     required: true
   path:
@@ -43,7 +46,9 @@ runs:
       id: download_artifact
       uses: actions/download-artifact@v5
       with:
-        name: ${{ inputs.artifact_name }}
+        name: |
+          ${{ inputs.artifact_name_files }}
+          ${{ inputs.artifact_name_vars }}
         repository: ${{ inputs.source_owner }}/${{ inputs.source_repo }}
         run-id: ${{ inputs.run_id }}
         github-token: ${{ inputs.token }}

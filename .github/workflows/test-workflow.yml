@@ -39,7 +39,8 @@ jobs:
           source_owner: ${{ github.event.client_payload.source_owner }}
           source_repo: ${{ github.event.client_payload.source_repo }}
           run_id: ${{ github.event.client_payload.run_id }}
-          artifact_name: ${{ github.event.client_payload.artifact_name }}
+          artifact_name_files: ${{ github.event.client_payload.artifact_name_files }}
+          artifact_name_vars: ${{ github.event.client_payload.artifact_name_vars }}
           path: ${{ github.event.client_payload.save_path }}
 
       - name: List downloaded
