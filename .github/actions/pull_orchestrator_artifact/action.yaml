@@ -1,0 +1,48 @@
+name: "Pull orchestrator artifact"
+description: "Pull orchestrator artifact"
+
+inputs:
+  token:
+    description: "Token with read access to the source repo"
+    required: true
+  source_owner:
+    description: "Owner of the source repo"
+    required: true
+  source_repo:
+    description: "Name of the source repo"
+    required: true
+  run_id:
+    description: "Workflow run ID to download from"
+    required: true
+  artifact_name:
+    description: "Artifact name to download"
+    required: true
+  path:
+    description: "Destination directory"
+    default: ".orchestrator-artifacts"
+    required: false
+
+outputs:
+  download_path:
+    description: "Absolute path where the artifact was downloaded"
+    value: ${{ steps.download_artifact.outputs['download-path'] }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Check directory exists
+      shell: bash
+      run: |
+        set -euo pipefail
+        mkdir -p "${{ inputs.path }}"
+
+    - name: Download artifact from orchestrator
+      id: download_artifact
+      uses: actions/download-artifact@v5
+      with:
+        name: ${{ inputs.artifact_name }}
+        repository: ${{ inputs.source_owner }}/${{ inputs.source_repo }}
+        run-id: ${{ inputs.run_id }}
+        github-token: ${{ inputs.token }}
+        path: ${{ inputs.path }}
+        if-no-files-found: error
