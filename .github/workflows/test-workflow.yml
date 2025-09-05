@@ -10,47 +10,7 @@ permissions:
   actions: read
 
 jobs:
-  test-action:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      actions: read
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Test action
-        uses: elizaveta-tagirova/dummy-orchestration/.github/actions/test_action@0a1b02c452e82f1d998fecaca9080009758f4d6f
-
-  test-local-action-files:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      actions: write
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Test local action
-        id: inject_config_files
-        uses: ./.github/actions/inject_config_files
-
-      - name: Test prev outputs
-        run: echo "Outputs ${{ toJson(steps.inject_config_files.outputs) }}"
-
-  test-local-action-vars:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      actions: write
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Test local action
-        id: inject_config_vars
-        uses: ./.github/actions/inject_config_vars
-        with:
-          token: ${{ secrets.VARS_LIST_TOKEN }}
-
-  pull-artifact:
+  pull-config-artifact:
     if: github.event_name == 'repository_dispatch' && github.event.action == 'import-from-orchestrator'
     runs-on: ubuntu-latest
     permissions:
@@ -68,77 +28,35 @@ jobs:
           source_repo: ${{ github.event.client_payload.source_repo }}
           run_id: ${{ github.event.client_payload.run_id }}
           artifact_name: ${{ github.event.client_payload.artifact_name }}
-          path: .orchestrator-artifacts
+          path: ${{ github.event.client_payload.save_path }}
 
-      - name: List files
+      - name: List downloaded
         run: |
           echo "Downloaded to: ${{ steps.pull_artifact.outputs.download_path }}"
           find "${{ steps.pull_artifact.outputs.download_path }}" -type f -print
 
-
-  inject-configs:
-    needs: [test-action, test-local-action-files, test-local-action-vars, pull-artifact]
+  inject-config-files:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: write
     steps:
-      - name: Сheckout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+
+      - name: Inject files
+        id: inject_config_files
+        uses: ./.github/actions/inject_config_files
+
+  inject-config--vars:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Inject vars
+        id: inject_config_vars
+        uses: ./.github/actions/inject_config_vars
         with:
-          token: ${{ github.token }}
-          ref: main
-
-      - name: Check generated configs pushed
-        run: test -d .config/generated
-
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with: { python-version: "3.x" }
-
-      - name: Install injector deps
-        run: python -m pip install -r tools/requirements.txt
-
-      - name: Inject generated configs
-        run: python tools/inject_configs.py --env prod
-
-      - name: Get pushed variables
-        run: |
-          RESP=$(curl -sS -w "\n%{http_code}" \
-            -H "Authorization: Bearer ${{ secrets.VARS_LIST_TOKEN }}" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${{ github.repository }}/actions/variables?per_page=100")
-      
-          CODE=$(echo "$RESP" | tail -n1)
-          BODY=$(echo "$RESP" | sed '$d')
-      
-          echo "HTTP $CODE"
-          if [ "$CODE" != "200" ]; then
-            echo "Response body:"
-            echo "$BODY" | jq . || echo "$BODY"
-            exit 1
-          fi
-      
-          # Convert to {name: value} map
-          VARS_JSON=$(echo "$BODY" | jq -c '.variables // [] | map({(.name): .value}) | add // {}')
-      
-          echo "VARS_JSON=$VARS_JSON" >> "$GITHUB_ENV"
-
-      - name: Inject pushed variables
-        run: python tools/inject_vars.py --vars-json '${{ env.VARS_JSON }}'
-
-      - name: Commit incorporated changes
-        run: |
-          git config user.name "Config Injector"
-          git config user.email "config-injector@example.com"
-          git add -A
-          if git diff --cached --quiet; then
-            echo "No changes to commit"
-          else
-            git commit -m "chore(config): inject .config/generated"
-            git push origin HEAD:main
-          fi
-
-  test:
-    needs: [inject-configs]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Echo message
-        run: echo "Received dispatch trigger-workflow"
+          token: ${{ secrets.VARS_LIST_TOKEN }}
