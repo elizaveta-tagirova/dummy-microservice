@@ -28,7 +28,7 @@ inputs:
 outputs:
   download_path:
     description: "Absolute path where the artifact was downloaded"
-    value: ${{ steps.download_artifact.outputs['download-path'] }}
+    value: ${{ steps.download_artifact_files.outputs['download-path'] }}
 
 runs:
   using: "composite"
@@ -43,7 +43,7 @@ runs:
         mkdir -p "${{ inputs.path }}"
 
     - name: Download files artifact from orchestrator
-      id: download_artifact
+      id: download_artifact_files
       uses: actions/download-artifact@v5
       with:
         name: ${{ inputs.artifact_name_files }}
@@ -54,7 +54,7 @@ runs:
         if-no-files-found: error
 
     - name: Download vars artifact from orchestrator
-      id: download_artifact
+      id: download_artifact_vars
       uses: actions/download-artifact@v5
       with:
         name: ${{ inputs.artifact_name_vars }}
