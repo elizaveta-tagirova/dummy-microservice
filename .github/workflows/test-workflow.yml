@@ -14,7 +14,7 @@ jobs:
     if: github.event_name == 'repository_dispatch' && github.event.action == 'import-from-orchestrator'
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       actions: read
     steps:
       - uses: actions/checkout@v4
