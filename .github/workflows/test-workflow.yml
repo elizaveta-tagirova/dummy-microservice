@@ -21,7 +21,7 @@ jobs:
       - name: Test action
         uses: elizaveta-tagirova/dummy-orchestration/.github/actions/test_action@0a1b02c452e82f1d998fecaca9080009758f4d6f
 
-  test-local-action:
+  test-local-action-files:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -35,6 +35,18 @@ jobs:
 
       - name: Test prev outputs
         run: echo "Outputs ${{ toJson(steps.inject_config_files.outputs) }}"
+
+  test-local-action-vars:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Test local action
+        id: inject_config_vars
+        uses: ./.github/actions/inject_config_vars
 
   pull-artifact:
     if: github.event_name == 'repository_dispatch' && github.event.action == 'import-from-orchestrator'
@@ -61,8 +73,9 @@ jobs:
           echo "Downloaded to: ${{ steps.pull_artifact.outputs.download_path }}"
           find "${{ steps.pull_artifact.outputs.download_path }}" -type f -print
 
+
   inject-configs:
-    needs: [test-action, test-local-action, pull-artifact]
+    needs: [test-action, test-local-action-files, test-local-action-vars, pull-artifact]
     runs-on: ubuntu-latest
     steps:
       - name: Сheckout
