@@ -60,7 +60,7 @@ jobs:
         id: inject_config_files
         uses: ./.github/actions/inject_config_files
 
-  inject-config--vars:
+  inject-config-vars:
     runs-on: ubuntu-latest
     permissions:
       contents: write
