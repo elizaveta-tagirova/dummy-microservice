@@ -46,3 +46,16 @@ runs:
         github-token: ${{ inputs.token }}
         path: ${{ inputs.path }}
         if-no-files-found: error
+
+    - name: Commit changes
+      shell: bash
+      run: |
+        git config user.name "Config Injector"
+        git config user.email "config-injector@example.com"
+        git add -A
+        if git diff --cached --quiet; then
+          echo "No changes to commit"
+        else
+          git commit -m "chore(config): save artifacts"
+          git push origin HEAD:main
+        fi
