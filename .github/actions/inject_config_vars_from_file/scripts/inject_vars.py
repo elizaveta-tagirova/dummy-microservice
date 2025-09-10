@@ -33,6 +33,7 @@ def replace_in_text(text: str, var_values: dict, allow_vars: set[str] | None) ->
     def repl(m: re.Match) -> str:
         nonlocal count
         name = m.group(1)
+        name = name.lower()
         if allow_vars is not None and name not in allow_vars:
             return m.group(0)  # leave as-is
         if name not in var_values:
@@ -73,6 +74,7 @@ def main():
             if present.isdisjoint(allow_vars):
                 continue
 
+        var_values = {k.lower(): v for k, v in var_values.items()}
         new_text, n, missing = replace_in_text(text, var_values, allow_vars)
         if n > 0:
             path.write_text(new_text, encoding="utf-8")
