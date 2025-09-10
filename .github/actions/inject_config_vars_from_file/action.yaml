@@ -1,0 +1,47 @@
+name: "Inject vars file"
+description: "Inject vars"
+
+inputs:
+  filepath:
+    description: "file with vars values"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Сheckout
+      uses: actions/checkout@v4
+
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with: { python-version: "3.x" }
+
+    - name: Install injector deps
+      shell: bash
+      run: python -m pip install -r ${{ github.action_path }}/requirements.txt
+
+    - name: Read vars file
+      shell: bash
+      env:
+        YAML_FILE: ${{ inputs.filepath }}
+      run: |
+        set -euo pipefail
+        VARS_JSON="$($YQ -o=json '.' "${{ env.YAML_FILE }}" | jq -c '.')"
+        echo "VARS_JSON=$VARS_JSON" >> "$GITHUB_ENV"
+
+    - name: Inject pushed variables
+      shell: bash
+      run: python ${{ github.action_path }}/scripts/inject_vars.py --vars-json '${{ env.VARS_JSON }}'
+
+    - name: Commit incorporated changes
+      shell: bash
+      run: |
+        git config user.name "Config Injector"
+        git config user.email "config-injector@example.com"
+        git add -A
+        if git diff --cached --quiet; then
+          echo "No changes to commit"
+        else
+          git commit -m "chore(config): inject config vars"
+          git push origin HEAD:main
+        fi

@@ -71,7 +71,9 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Inject vars
+        env:
+          FILEPATH: "${{ github.event.client_payload.save_path }}/app-vars-set-1.yaml"
         id: inject_config_vars
-        uses: ./.github/actions/inject_config_vars
+        uses: ./.github/actions/inject_config_vars_from_file
         with:
-          token: ${{ secrets.VARS_LIST_TOKEN }}
+          filepath: ${{ env.FILEPATH }}
