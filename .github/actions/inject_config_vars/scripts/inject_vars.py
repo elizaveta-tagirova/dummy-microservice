@@ -3,6 +3,7 @@ from pathlib import Path
 import yaml
 
 PLACEHOLDER_RE = re.compile(r"\{\{\s*vars\.([A-Za-z0-9_]+)\s*\}\}")
+# {{ vars.VAR1 }}
 
 def load_vars(vars_json_path: Path) -> dict:
     with vars_json_path.open("r", encoding="utf-8") as f:
