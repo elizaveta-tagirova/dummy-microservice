@@ -26,7 +26,7 @@ runs:
         YAML_FILE: ${{ inputs.filepath }}
       run: |
         set -euo pipefail
-        VARS_JSON="$($YQ -o=json '.' "${{ env.YAML_FILE }}" | jq -c '.')"
+        VARS_JSON="$(yq -o=json '.' "${{ env.YAML_FILE }}" | jq -c '.')"
         echo "VARS_JSON=$VARS_JSON" >> "$GITHUB_ENV"
 
     - name: Inject pushed variables
