@@ -26,6 +26,8 @@ runs:
         YAML_FILE: ${{ inputs.filepath }}
       run: |
         set -euo pipefail
+        echo ${{ env.YAML_FILE }}
+        cat ${{ env.YAML_FILE }}
         VARS_JSON="$(yq -o=json '.' "${{ env.YAML_FILE }}" | jq -c '.')"
         echo "VARS_JSON=$VARS_JSON" >> "$GITHUB_ENV"
 
