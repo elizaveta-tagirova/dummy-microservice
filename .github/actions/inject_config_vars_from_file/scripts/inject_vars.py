@@ -66,16 +66,17 @@ def main():
             print(f"[skip] {path} (not found)", file=sys.stderr)
             continue
         allow_vars = set(t.get("vars")) if "vars" in t else None
+        allow_vars_lower = set(map(lambda x: x.lower(), allow_vars))
 
         text = path.read_text(encoding="utf-8")
         # If mapping restricts vars, but file has none of them, skip fast
         if allow_vars is not None:
             present = collect_placeholders(text)
-            if present.isdisjoint(allow_vars):
+            if present.isdisjoint(allow_vars) and present.isdisjoint(allow_vars_lower):
                 continue
 
         var_values = {k.lower(): v for k, v in var_values.items()}
-        new_text, n, missing = replace_in_text(text, var_values, allow_vars)
+        new_text, n, missing = replace_in_text(text, var_values, allow_vars_lower)
         if n > 0:
             path.write_text(new_text, encoding="utf-8")
             print(f"[ok] {path} → {n} replacement(s)")
