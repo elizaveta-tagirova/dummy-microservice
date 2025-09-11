@@ -35,6 +35,8 @@ jobs:
       contents: write
       actions: read
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
       - name: Run Inject files
         uses: ./.github/actions/run_inject_config_files
         with:
@@ -53,6 +55,8 @@ jobs:
       contents: write
       actions: read
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
       - name: Run Inject vars
         uses: ./.github/actions/run_inject_config_vars
         with:
