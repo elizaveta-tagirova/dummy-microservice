@@ -29,7 +29,7 @@ java {
 }
 
 // using gh variables
-val someVar =  false
-val someVar2 = Hello, world!
+val someVar =  {{ vars.var1 }}
+val someVar2 = {{ vars.var2 }}
 
 // rest of file...
