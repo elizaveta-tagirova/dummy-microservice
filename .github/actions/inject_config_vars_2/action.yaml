@@ -8,12 +8,10 @@ inputs:
 
 runs:
   using: "composite"
-  env:
-    VARS_FILE: ${{ inputs.filepath }}
   steps:
     - name: Check VARS_FILE
       shell: bash
-      run: test -f "$VARS_FILE"
+      run: test -f "${{ inputs.filepath }}"
 
     - name: Install yq
       shell: bash
@@ -40,7 +38,7 @@ runs:
       shell: bash
       run: |
         set -euo pipefail
-        json="$(yq -o=json '.' "$VARS_FILE")"
+        json="$(yq -o=json '.' "${{ inputs.filepath }}")"
         printf 'VARS_JSON=%s\n' "$(echo "$json" | jq -c '.')" >> "$GITHUB_ENV"
 
     - name: Inject variables

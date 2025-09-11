@@ -16,12 +16,10 @@ outputs:
 
 runs:
   using: "composite"
-  env:
-    SOURCE_PATH: ${{ inputs.source_path }}
   steps:
     - name: Check SOURCE_PATH
       shell: bash
-      run: test -d "$SOURCE_PATH"
+      run: test -d "${{ inputs.source_path }}"
 
     - name: Setup Python
       uses: actions/setup-python@v4
@@ -34,7 +32,7 @@ runs:
 
     - name: Inject pushed configs
       shell: bash
-      run: python "${{ github.action_path }}/scripts/move_files.py" --source-path "$SOURCE_PATH"
+      run: python "${{ github.action_path }}/scripts/move_files.py" --source-path "${{ inputs.source_path }}"
 
     - name: Commit injected changes
       id: commit_changes
