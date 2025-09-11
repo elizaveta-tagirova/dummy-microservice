@@ -47,6 +47,7 @@ jobs:
           run_id:           ${{ github.event.client_payload.run_id }}
           artifact_name:    ${{ github.event.client_payload.artifact_name_files }}
           fallback_files_dir: ${{ env.CONFIGS_SAVE_PATH }}/files
+          deploy_env: ${{ github.event.client_payload.deploy_env }}
 
   inject-config-vars:
     needs: [decide]

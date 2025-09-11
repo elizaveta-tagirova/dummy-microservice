@@ -23,6 +23,9 @@ inputs:
   fallback_files_dir:
     description: "Relative path in workspace to use when not pulling (e.g. .orchestrator-configs/files)"
     default: ".orchestrator-configs/files"
+  deploy_env:
+    description: "Deploy environment name"
+    required: true
 
 outputs:
   committed:
@@ -68,3 +71,4 @@ runs:
       uses: ./.github/actions/inject_config_files_2
       with:
         source_path: ${{ steps.resolve.outputs.source_path }}
+        deploy_env: ${{ inputs.deploy_env }}

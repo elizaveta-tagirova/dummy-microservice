@@ -5,6 +5,9 @@ inputs:
   source_path:
     description: "Source directory"
     required: true
+  deploy_env:
+    description: "Deploy environment name"
+    required: true
 
 outputs:
   commited:
@@ -32,7 +35,7 @@ runs:
 
     - name: Inject pushed configs
       shell: bash
-      run: python "${{ github.action_path }}/scripts/move_files.py" --source-path "${{ inputs.source_path }}"
+      run: python "${{ github.action_path }}/scripts/move_files.py" --source-path "${{ inputs.source_path }}" --env "${{ inputs.deploy_env }}"
 
     - name: Commit injected changes
       id: commit_changes
