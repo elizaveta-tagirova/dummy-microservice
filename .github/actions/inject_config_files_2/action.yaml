@@ -1,0 +1,55 @@
+name: "Inject files"
+description: "Inject files"
+
+inputs:
+  source_path:
+    description: "Source directory"
+    required: true
+
+outputs:
+  commited:
+    description: "True if changes were commited, false otherwise"
+    value: ${{ steps.commit_changes.outputs.commited }}
+  commit_sha:
+    description: "Commit SHA (empty if not)"
+    value: ${{ steps.commit_changes.outputs.commit_sha }}
+
+runs:
+  using: "composite"
+  env:
+    SOURCE_PATH: ${{ inputs.source_path }}
+  steps:
+    - name: Check SOURCE_PATH
+      shell: bash
+      run: test -d $SOURCE_PATH
+
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with: { python-version: "3.x" }
+
+    - name: Install injector deps
+      shell: bash
+      run: python -m pip install -r ${{ github.action_path }}/requirements.txt
+
+    - name: Inject pushed configs
+      shell: bash
+      run: python ${{ github.action_path }}/scripts/move_files.py --source-path $SOURCE_PATH
+
+    - name: Commit injected changes
+      id: commit_changes
+      shell: bash
+      run: |
+        git config user.name "Config Injector"
+        git config user.email "config-injector@example.com"
+        git add -A
+        if git diff --cached --quiet; then
+          echo "No changes to commit"
+          echo "commited=false" >> "$GITHUB_OUTPUT"
+          echo "commit_sha=" >> "$GITHUB_OUTPUT"
+        else
+          git commit -m "chore(config): inject .orchestrator-configs"
+          git push origin HEAD:main
+          sha="$(git rev-parse HEAD)"
+          echo "commited=true" >> "$GITHUB_OUTPUT"
+          echo "commit_sha=${sha}" >> "$GITHUB_OUTPUT"
+        fi

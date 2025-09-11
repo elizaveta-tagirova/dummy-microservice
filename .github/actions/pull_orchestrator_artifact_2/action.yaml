@@ -1,0 +1,56 @@
+name: "Pull orchestrator artifact"
+description: "Pull orchestrator artifact"
+
+inputs:
+  token:
+    description: "Token with read access to the source repo"
+    required: true
+  source_owner:
+    description: "Owner of the source repo"
+    required: true
+  source_repo:
+    description: "Name of the source repo"
+    required: true
+  run_id:
+    description: "Workflow run ID to download from"
+    required: true
+  artifact_name:
+    description: "Artifact name to download"
+    required: true
+
+outputs:
+  temp_dir:
+    description: "Absolute temp root used for downloads"
+    value: ${{ steps.paths.outputs.temp_dir }}
+  download_root:
+    description: "Absolute path to the download root directory"
+    value: ${{ steps.paths.outputs.download_root }}
+  files_path:
+    description: "Absolute path to extracted artifact"
+    value: ${{ steps.paths.outputs.files_path }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Prepare temp dirs
+      id: paths
+      shell: bash
+      run: |
+        set -euo pipefail
+        temp_dir="$(mktemp -d "${RUNNER_TEMP}/orchestrator.XXXXXX")"
+        download_root="${temp_dir}/"
+        files_path="${download_root}/files"
+        mkdir -p "$files_path"
+        echo "temp_dir=$temp_dir"           >> "$GITHUB_OUTPUT"
+        echo "download_root=$download_root" >> "$GITHUB_OUTPUT"
+        echo "files_path=$files_path"       >> "$GITHUB_OUTPUT"
+
+    - name: Download artifact from orchestrator
+      uses: actions/download-artifact@v5
+      with:
+        name: ${{ inputs.artifact_name }}
+        repository: ${{ inputs.source_owner }}/${{ inputs.source_repo }}
+        run-id: ${{ inputs.run_id }}
+        github-token: ${{ inputs.token }}
+        path: ${{ steps.paths.outputs.files_path }}
+        if-no-files-found: error

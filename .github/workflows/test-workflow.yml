@@ -5,12 +5,31 @@ on:
   repository_dispatch:
     types: [trigger-workflow, import-from-orchestrator]
 
+env:
+  CONFIGS_SAVE_PATH: .orchestrator-configs
+  VARS_FILE_NAME: app-vars-set-1.yaml
+
 permissions:
   contents: write
   actions: read
 
 jobs:
-  pull-config-artifact:
+  decide:
+    runs-on: ubuntu-latest
+    outputs:
+      should_pull: ${{ steps.flag.outputs.should_pull }}
+    steps:
+      - id: flag
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "repository_dispatch" && "${{ github.event.action }}" == "import-from-orchestrator" ]]; then
+            echo "should_pull=true"  >> "$GITHUB_OUTPUT"
+          else
+            echo "should_pull=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  inject-config-files:
+    needs: [decide]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -18,62 +37,75 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check if to pull artifact
-        id: condition
-        run: |
-          if [[ "${{ github.event_name }}" == "repository_dispatch" && "${{ github.event.action }}" == "import-from-orchestrator" ]]; then
-            echo "run=true"
-            echo "run=true"  >> "$GITHUB_OUTPUT"
-          else
-            echo "run=false"
-            echo "run=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Pull artifact from orchestrator
-        id: pull_artifact
-        if: steps.condition.outputs.run == 'true'
-        uses: ./.github/actions/pull_orchestrator_artifact
+      # Optional download into $RUNNER_TEMP when repository_dispatch/import-from-orchestrator
+      - name: Pull artifacts files into $RUNNER_TEMP (optional)
+        id: pull
+        if: needs.decide.outputs.should_pull == 'true'
+        uses: ./.github/actions/pull_orchestrator_artifact_2
         with:
           token: ${{ secrets.VARS_LIST_TOKEN }}
           source_owner: ${{ github.event.client_payload.source_owner }}
           source_repo: ${{ github.event.client_payload.source_repo }}
           run_id: ${{ github.event.client_payload.run_id }}
-          artifact_name_files: ${{ github.event.client_payload.artifact_name_files }}
-          artifact_name_vars: ${{ github.event.client_payload.artifact_name_vars }}
-          path: ${{ github.event.client_payload.save_path }}
+          artifact_name: ${{ github.event.client_payload.artifact_name_files }}
 
-      - name: List downloaded
-        if: steps.condition.outputs.run == 'true'
+      - name: Resolve source path for files
+        id: resolve_files
+        shell: bash
+        env:
+          FALLBACK_FILES: ${{ env.CONFIGS_SAVE_PATH }}
         run: |
-          echo "Downloaded to: ${{ steps.pull_artifact.outputs.download_path }}"
-          find "${{ steps.pull_artifact.outputs.download_path }}" -type f -print
-
-  inject-config-files:
-    runs-on: ubuntu-latest
-    needs: [pull-config-artifact]
-    permissions:
-      contents: write
-      actions: write
-    steps:
-      - uses: actions/checkout@v4
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "repository_dispatch" && "${{ github.event.action }}" == "import-from-orchestrator" ]]; then
+            use_path="${{ steps.pull.outputs.files_path }}"   # absolute path under $RUNNER_TEMP
+          else
+            use_path="${GITHUB_WORKSPACE}/${FALLBACK_FILES}"  # workspace fallback
+          fi
+          echo "source_path=${use_path}" >> "$GITHUB_OUTPUT"
+          echo "Using: $use_path"
 
       - name: Inject files
-        id: inject_config_files
-        uses: ./.github/actions/inject_config_files
+        uses: ./.github/actions/inject_config_files_2
+        with:
+          source_path: ${{ steps.resolve_files.outputs.source_path }}
 
   inject-config-vars:
+    needs: [decide]
     runs-on: ubuntu-latest
-    needs: [pull-config-artifact]
     permissions:
       contents: write
-      actions: write
+      actions: read
     steps:
       - uses: actions/checkout@v4
 
-      - name: Inject vars
-        env:
-          FILEPATH: "${{ github.event.client_payload.save_path }}/app-vars-set-1.yaml"
-        id: inject_config_vars
-        uses: ./.github/actions/inject_config_vars_from_file
+      # Optional download into $RUNNER_TEMP when repository_dispatch/import-from-orchestrator
+      - name: Pull artifacts vars into $RUNNER_TEMP (optional)
+        id: pull
+        if: needs.decide.outputs.should_pull == 'true'
+        uses: ./.github/actions/pull_orchestrator_artifact_2
         with:
-          filepath: ${{ env.FILEPATH }}
+          token: ${{ secrets.VARS_LIST_TOKEN }}
+          source_owner: ${{ github.event.client_payload.source_owner }}
+          source_repo: ${{ github.event.client_payload.source_repo }}
+          run_id: ${{ github.event.client_payload.run_id }}
+          artifact_name: ${{ github.event.client_payload.artifact_name_files }}
+
+      - name: Resolve source path for vars
+        id: resolve_vars
+        shell: bash
+        env:
+          FALLBACK_FILES: ${{ env.CONFIGS_SAVE_PATH }}
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "repository_dispatch" && "${{ github.event.action }}" == "import-from-orchestrator" ]]; then
+            use_path="${{ steps.pull.outputs.files_path }}"   # absolute path under $RUNNER_TEMP
+          else
+            use_path="${GITHUB_WORKSPACE}/${FALLBACK_FILES}"  # workspace fallback
+          fi
+          echo "source_path=${use_path}" >> "$GITHUB_OUTPUT"
+          echo "Using: $use_path"
+
+      - name: Inject vars
+        uses: ./.github/actions/inject_config_vars_2
+        with:
+          source_path: ${{ steps.resolve_vars.outputs.source_path }}
