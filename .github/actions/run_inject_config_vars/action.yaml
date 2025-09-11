@@ -1,0 +1,68 @@
+name: "Run inject-config-vars (optional pull)"
+description: "Optionally pull vars artifact into $RUNNER_TEMP, resolve vars file path, then inject & commit"
+
+inputs:
+  should_pull:
+    description: "'true' to pull artifacts; 'false' to use fallback in workspace"
+    required: true
+  token:
+    description: "Token with actions:read on SOURCE repo (required when should_pull=='true')"
+    required: false
+  source_owner:
+    description: "Owner of SOURCE repo (when pulling)"
+    required: false
+  source_repo:
+    description: "Name of SOURCE repo (when pulling)"
+    required: false
+  run_id:
+    description: "Workflow run ID in SOURCE repo (when pulling)"
+    required: false
+  artifact_name:
+    description: "Vars artifact name in SOURCE repo (when pulling)"
+    required: false
+  fallback_vars_dir:
+    description: "Relative dir in workspace when not pulling (e.g. .orchestrator-configs/vars)"
+    default: ".orchestrator-configs/vars"
+  vars_file_name:
+    description: "Vars filename to read inside the dir"
+    default: "app-vars-set-1.yaml"
+
+outputs:
+  used_vars_file:
+    description: "The resolved vars file path used for injection"
+    value: ${{ steps.resolve.outputs.vars_file }}
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/checkout@v4
+
+    - name: Pull vars artifact (into $RUNNER_TEMP)
+      id: pull
+      if: inputs.should_pull == 'true'
+      uses: ./.github/actions/pull_orchestrator_artifact_2
+      with:
+        token:         ${{ inputs.token }}
+        source_owner:  ${{ inputs.source_owner }}
+        source_repo:   ${{ inputs.source_repo }}
+        run_id:        ${{ inputs.run_id }}
+        artifact_name: ${{ inputs.artifact_name }}
+
+    - name: Resolve vars file path
+      id: resolve
+      shell: bash
+      env:
+        VNAME: ${{ inputs.vars_file_name }}
+      run: |
+        set -euo pipefail
+        if [ "${{ inputs.should_pull }}" = "true" ]; then
+          vars_file="${{ steps.pull.outputs.artifact_path }}/${VNAME}"
+        else
+          vars_file="${GITHUB_WORKSPACE}/${{ inputs.fallback_vars_dir }}/${VNAME}"
+        fi
+        echo "vars_file=${vars_file}" >> "$GITHUB_OUTPUT"
+
+    - name: Inject vars
+      uses: ./.github/actions/inject_config_vars_2
+      with:
+        filepath: ${{ steps.resolve.outputs.vars_file }}

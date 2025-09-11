@@ -1,0 +1,70 @@
+name: "Run inject-config-files (optional pull)"
+description: "Optionally pull files artifact into $RUNNER_TEMP, resolve source path, then inject & commit"
+
+inputs:
+  should_pull:
+    description: "'true' to pull artifacts; 'false' to use fallback in workspace"
+    required: true
+  token:
+    description: "Token with actions:read on SOURCE repo (required when should_pull=='true')"
+    required: false
+  source_owner:
+    description: "Owner of SOURCE repo (when pulling)"
+    required: false
+  source_repo:
+    description: "Name of SOURCE repo (when pulling)"
+    required: false
+  run_id:
+    description: "Workflow run ID in SOURCE repo (when pulling)"
+    required: false
+  artifact_name:
+    description: "Files artifact name in SOURCE repo (when pulling)"
+    required: false
+  fallback_files_dir:
+    description: "Relative path in workspace to use when not pulling (e.g. .orchestrator-configs/files)"
+    default: ".orchestrator-configs/files"
+
+outputs:
+  committed:
+    description: "True if a commit was made"
+    value: ${{ steps.inject.outputs.commited }}
+  commit_sha:
+    description: "Commit SHA if committed"
+    value: ${{ steps.inject.outputs.commit_sha }}
+  used_source_path:
+    description: "The resolved source path used for injection"
+    value: ${{ steps.resolve.outputs.source_path }}
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/checkout@v4
+
+    - name: Pull files artifact (into $RUNNER_TEMP)
+      id: pull
+      if: inputs.should_pull == 'true'
+      uses: ./.github/actions/pull_orchestrator_artifact_2
+      with:
+        token:         ${{ inputs.token }}
+        source_owner:  ${{ inputs.source_owner }}
+        source_repo:   ${{ inputs.source_repo }}
+        run_id:        ${{ inputs.run_id }}
+        artifact_name: ${{ inputs.artifact_name }}
+
+    - name: Resolve source path
+      id: resolve
+      shell: bash
+      run: |
+        set -euo pipefail
+        if [ "${{ inputs.should_pull }}" = "true" ]; then
+          use_path="${{ steps.pull.outputs.artifact_path }}"
+        else
+          use_path="${GITHUB_WORKSPACE}/${{ inputs.fallback_files_dir }}"
+        fi
+        echo "source_path=${use_path}" >> "$GITHUB_OUTPUT"
+
+    - name: Inject files
+      id: inject
+      uses: ./.github/actions/inject_config_files_2
+      with:
+        source_path: ${{ steps.resolve.outputs.source_path }}
