@@ -1,48 +1,62 @@
 name: "Inject vars"
-description: "Inject vars"
+description: "Read a YAML vars file and apply variables; commit if changed"
 
 inputs:
-  source_path:
-    description: "Source directory"
+  filepath:
+    description: "Path to the YAML file"
     required: true
 
 runs:
   using: "composite"
   env:
-    SOURCE_PATH: ${{ inputs.source_path }}
+    VARS_FILE: ${{ inputs.filepath }}
   steps:
-    - name: Check SOURCE_PATH
+    - name: Check VARS_FILE
       shell: bash
-      run: test -d $SOURCE_PATH
+      run: test -f "$VARS_FILE"
 
-    - name: Setup Python
-      uses: actions/setup-python@v4
-      with: { python-version: "3.x" }
-
-    - name: Install injector deps
-      shell: bash
-      run: python -m pip install -r ${{ github.action_path }}/requirements.txt
-
-    - name: Read vars file
+    - name: Install yq
       shell: bash
       run: |
         set -euo pipefail
-        VARS_JSON="$(yq -o=json '.' "${{ env.SOURCE_PATH }}" | jq -c '.')"
-        echo "VARS_JSON=$VARS_JSON" >> "$GITHUB_ENV"
+        if ! command -v yq >/dev/null 2>&1; then
+          ver="v4.44.3"
+          curl -sSL -o "$RUNNER_TEMP/yq" "https://github.com/mikefarah/yq/releases/download/${ver}/yq_linux_amd64"
+          chmod +x "$RUNNER_TEMP/yq"
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+        fi
+        yq --version
 
-    - name: Inject pushed variables
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.x"
+
+    - name: Install injector deps
       shell: bash
-      run: python ${{ github.action_path }}/scripts/inject_vars.py --vars-json '${{ env.VARS_JSON }}'
+      run: python -m pip install -r "${{ github.action_path }}/requirements.txt"
+
+    - name: Read vars file → VARS_JSON
+      shell: bash
+      run: |
+        set -euo pipefail
+        json="$(yq -o=json '.' "$VARS_FILE")"
+        printf 'VARS_JSON=%s\n' "$(echo "$json" | jq -c '.')" >> "$GITHUB_ENV"
+
+    - name: Inject variables
+      shell: bash
+      run: python "${{ github.action_path }}/scripts/inject_vars.py" --vars-json "$VARS_JSON"
 
     - name: Commit incorporated changes
       shell: bash
       run: |
-        git config user.name "Config Injector"
+        set -euo pipefail
+        git config user.name  "Config Injector"
         git config user.email "config-injector@example.com"
         git add -A
         if git diff --cached --quiet; then
           echo "No changes to commit"
         else
           git commit -m "chore(config): inject config vars"
-          git push origin HEAD:main
+          git push origin "HEAD:${GITHUB_REF_NAME}"
         fi

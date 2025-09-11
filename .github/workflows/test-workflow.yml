@@ -37,32 +37,30 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Optional download into $RUNNER_TEMP when repository_dispatch/import-from-orchestrator
-      - name: Pull artifacts files into $RUNNER_TEMP (optional)
+      - name: Pull artifacts (files) into $RUNNER_TEMP (optional)
         id: pull
         if: needs.decide.outputs.should_pull == 'true'
         uses: ./.github/actions/pull_orchestrator_artifact_2
         with:
-          token: ${{ secrets.VARS_LIST_TOKEN }}
-          source_owner: ${{ github.event.client_payload.source_owner }}
-          source_repo: ${{ github.event.client_payload.source_repo }}
-          run_id: ${{ github.event.client_payload.run_id }}
+          token:         ${{ secrets.VARS_LIST_TOKEN }}
+          source_owner:  ${{ github.event.client_payload.source_owner }}
+          source_repo:   ${{ github.event.client_payload.source_repo }}
+          run_id:        ${{ github.event.client_payload.run_id }}
           artifact_name: ${{ github.event.client_payload.artifact_name_files }}
 
-      - name: Resolve source path for files
+      - name: Resolve source path for FILES
         id: resolve_files
         shell: bash
         env:
-          FALLBACK_FILES: ${{ env.CONFIGS_SAVE_PATH }}
+          FALLBACK_FILES_DIR: ${{ env.CONFIGS_SAVE_PATH }}/files
         run: |
           set -euo pipefail
-          if [[ "${{ github.event_name }}" == "repository_dispatch" && "${{ github.event.action }}" == "import-from-orchestrator" ]]; then
-            use_path="${{ steps.pull.outputs.files_path }}"   # absolute path under $RUNNER_TEMP
+          if [[ "${{ needs.decide.outputs.should_pull }}" == "true" ]]; then
+            use_path="${{ steps.pull.outputs.artifact_path }}"
           else
-            use_path="${GITHUB_WORKSPACE}/${FALLBACK_FILES}"  # workspace fallback
+            use_path="${GITHUB_WORKSPACE}/${FALLBACK_FILES_DIR}"
           fi
           echo "source_path=${use_path}" >> "$GITHUB_OUTPUT"
-          echo "Using: $use_path"
 
       - name: Inject files
         uses: ./.github/actions/inject_config_files_2
@@ -78,34 +76,33 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Optional download into $RUNNER_TEMP when repository_dispatch/import-from-orchestrator
-      - name: Pull artifacts vars into $RUNNER_TEMP (optional)
+      - name: Pull artifacts (vars) into $RUNNER_TEMP (optional)
         id: pull
         if: needs.decide.outputs.should_pull == 'true'
         uses: ./.github/actions/pull_orchestrator_artifact_2
         with:
-          token: ${{ secrets.VARS_LIST_TOKEN }}
-          source_owner: ${{ github.event.client_payload.source_owner }}
-          source_repo: ${{ github.event.client_payload.source_repo }}
-          run_id: ${{ github.event.client_payload.run_id }}
-          artifact_name: ${{ github.event.client_payload.artifact_name_files }}
+          token:         ${{ secrets.VARS_LIST_TOKEN }}
+          source_owner:  ${{ github.event.client_payload.source_owner }}
+          source_repo:   ${{ github.event.client_payload.source_repo }}
+          run_id:        ${{ github.event.client_payload.run_id }}
+          artifact_name: ${{ github.event.client_payload.artifact_name_vars }}  # <-- fixed
 
-      - name: Resolve source path for vars
+      - name: Resolve filepath for VARS
         id: resolve_vars
         shell: bash
         env:
-          FALLBACK_FILES: ${{ env.CONFIGS_SAVE_PATH }}
+          FALLBACK_VARS_DIR: ${{ env.CONFIGS_SAVE_PATH }}/vars
+          VARS_FILE_NAME:    ${{ env.VARS_FILE_NAME }}
         run: |
           set -euo pipefail
-          if [[ "${{ github.event_name }}" == "repository_dispatch" && "${{ github.event.action }}" == "import-from-orchestrator" ]]; then
-            use_path="${{ steps.pull.outputs.files_path }}"   # absolute path under $RUNNER_TEMP
+          if [[ "${{ needs.decide.outputs.should_pull }}" == "true" ]]; then
+            vars_file="${{ steps.pull.outputs.artifact_path }}/${VARS_FILE_NAME}"
           else
-            use_path="${GITHUB_WORKSPACE}/${FALLBACK_FILES}"  # workspace fallback
+            vars_file="${GITHUB_WORKSPACE}/${FALLBACK_VARS_DIR}/${VARS_FILE_NAME}"
           fi
-          echo "source_path=${use_path}" >> "$GITHUB_OUTPUT"
-          echo "Using: $use_path"
+          echo "vars_file=${vars_file}" >> "$GITHUB_OUTPUT"
 
       - name: Inject vars
         uses: ./.github/actions/inject_config_vars_2
         with:
-          source_path: ${{ steps.resolve_vars.outputs.source_path }}
+          filepath: ${{ steps.resolve_vars.outputs.vars_file }}

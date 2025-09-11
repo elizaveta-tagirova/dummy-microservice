@@ -1,56 +1,53 @@
-name: "Pull orchestrator artifact"
-description: "Pull orchestrator artifact"
+name: "Pull orchestrator artifact (temp dir only)"
+description: "Download one artifact into a temp dir under $RUNNER_TEMP and expose its absolute path"
 
 inputs:
   token:
-    description: "Token with read access to the source repo"
+    description: "Token with actions:read on the SOURCE repo"
     required: true
   source_owner:
-    description: "Owner of the source repo"
     required: true
   source_repo:
-    description: "Name of the source repo"
     required: true
   run_id:
-    description: "Workflow run ID to download from"
     required: true
   artifact_name:
     description: "Artifact name to download"
     required: true
+  subdir:
+    description: "Subdirectory name under the temp root to extract into"
+    default: "artifact"
 
 outputs:
   temp_dir:
-    description: "Absolute temp root used for downloads"
+    description: "Absolute temp root used for download"
     value: ${{ steps.paths.outputs.temp_dir }}
-  download_root:
-    description: "Absolute path to the download root directory"
-    value: ${{ steps.paths.outputs.download_root }}
-  files_path:
-    description: "Absolute path to extracted artifact"
-    value: ${{ steps.paths.outputs.files_path }}
+  artifact_path:
+    description: "Absolute path where the artifact was extracted"
+    value: ${{ steps.paths.outputs.artifact_path }}
 
 runs:
   using: "composite"
   steps:
-    - name: Prepare temp dirs
+    - name: Prepare temp dir
       id: paths
       shell: bash
+      env:
+        SUBDIR: ${{ inputs.subdir }}
       run: |
         set -euo pipefail
         temp_dir="$(mktemp -d "${RUNNER_TEMP}/orchestrator.XXXXXX")"
-        download_root="${temp_dir}/"
-        files_path="${download_root}/files"
-        mkdir -p "$files_path"
-        echo "temp_dir=$temp_dir"           >> "$GITHUB_OUTPUT"
-        echo "download_root=$download_root" >> "$GITHUB_OUTPUT"
-        echo "files_path=$files_path"       >> "$GITHUB_OUTPUT"
+        artifact_path="${temp_dir}/${SUBDIR}"
+        mkdir -p "$artifact_path"
+        echo "temp_dir=$temp_dir"       >> "$GITHUB_OUTPUT"
+        echo "artifact_path=$artifact_path" >> "$GITHUB_OUTPUT"
 
-    - name: Download artifact from orchestrator
+    - name: Download artifact
       uses: actions/download-artifact@v5
       with:
-        name: ${{ inputs.artifact_name }}
-        repository: ${{ inputs.source_owner }}/${{ inputs.source_repo }}
-        run-id: ${{ inputs.run_id }}
+        name:         ${{ inputs.artifact_name }}
+        repository:   ${{ inputs.source_owner }}/${{ inputs.source_repo }}
+        run-id:       ${{ inputs.run_id }}
         github-token: ${{ inputs.token }}
-        path: ${{ steps.paths.outputs.files_path }}
+        path:         ${{ steps.paths.outputs.artifact_path }}
         if-no-files-found: error

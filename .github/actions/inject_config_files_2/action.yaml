@@ -1,5 +1,5 @@
 name: "Inject files"
-description: "Inject files"
+description: "Move/merge files from source_path into the repo and commit if changed"
 
 inputs:
   source_path:
@@ -21,35 +21,36 @@ runs:
   steps:
     - name: Check SOURCE_PATH
       shell: bash
-      run: test -d $SOURCE_PATH
+      run: test -d "$SOURCE_PATH"
 
     - name: Setup Python
       uses: actions/setup-python@v4
-      with: { python-version: "3.x" }
+      with:
+        python-version: "3.x"
 
     - name: Install injector deps
       shell: bash
-      run: python -m pip install -r ${{ github.action_path }}/requirements.txt
+      run: python -m pip install -r "${{ github.action_path }}/requirements.txt"
 
     - name: Inject pushed configs
       shell: bash
-      run: python ${{ github.action_path }}/scripts/move_files.py --source-path $SOURCE_PATH
+      run: python "${{ github.action_path }}/scripts/move_files.py" --source-path "$SOURCE_PATH"
 
     - name: Commit injected changes
       id: commit_changes
       shell: bash
       run: |
-        git config user.name "Config Injector"
+        set -euo pipefail
+        git config user.name  "Config Injector"
         git config user.email "config-injector@example.com"
         git add -A
         if git diff --cached --quiet; then
           echo "No changes to commit"
           echo "commited=false" >> "$GITHUB_OUTPUT"
-          echo "commit_sha=" >> "$GITHUB_OUTPUT"
+          echo "commit_sha="    >> "$GITHUB_OUTPUT"
         else
           git commit -m "chore(config): inject .orchestrator-configs"
-          git push origin HEAD:main
-          sha="$(git rev-parse HEAD)"
-          echo "commited=true" >> "$GITHUB_OUTPUT"
-          echo "commit_sha=${sha}" >> "$GITHUB_OUTPUT"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+          echo "commited=true"                >> "$GITHUB_OUTPUT"
+          echo "commit_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
         fi
